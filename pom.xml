@@ -16,6 +16,11 @@
                 <version>4.1.7.Final</version>
                 <scope>compile</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.5</version>
+            </dependency>
         </dependencies>
 
         <build>

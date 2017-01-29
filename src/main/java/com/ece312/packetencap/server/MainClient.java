@@ -2,7 +2,6 @@ package com.ece312.packetencap.server;
 
 import com.ece312.packetencap.util.MainUtil;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -25,7 +24,6 @@ public class MainClient implements Runnable{
                     .handler(new MainClientHandler());
 
             MainUtil.getInstance().setChannel(b.bind(0).sync().channel());
-            Channel ch = MainUtil.getInstance().getChannel();
 
 
             // Broadcast the QOTM request to port 8080.

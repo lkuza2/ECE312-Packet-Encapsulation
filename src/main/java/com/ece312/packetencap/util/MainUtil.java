@@ -1,6 +1,7 @@
 package com.ece312.packetencap.util;
 
 import com.ece312.packetencap.server.MainClient;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -59,6 +60,8 @@ public class MainUtil {
         }
         new Thread(new MainClient()).start();
 
+        while (getChannel() == null) ;
+
         System.out.println("Ready to handle commands.");
         printCursor();
         handleCommands(scanner);
@@ -77,11 +80,10 @@ public class MainUtil {
                     scanner.close();
                     exit();
                     break;
-                case "":
+                case "1":
+                    sendRHPControlMessage("hello");
                     break;
                 default:
-                    sendData(command);
-                    printCursor();
                     break;
             }
         }
@@ -94,6 +96,37 @@ public class MainUtil {
         System.out.print("<SHELL CITY>");
     }
 
+    private void sendRHPControlMessage(String payload) {
+        ByteBuf message = Unpooled.buffer();
+        int writtenBytes = message.writeByte(1).writeShortLE(payload.length()).writeShortLE(getPort())
+                .writeCharSequence(payload, CharsetUtil.US_ASCII);
+        int length = writtenBytes + 5;
+        System.out.println(length);
+
+        if (length % 2 == 1) {
+            message.writeByte(0);
+        }
+
+        ByteBuf cleanMessage = message.copy();
+
+        System.out.println(length);
+        byte bb[] = new byte[length];
+        cleanMessage.readBytes(bb, 0, length);
+
+        long checksum = calculateChecksum(bb);
+
+        message.writeShort((short) checksum);
+
+
+        try {
+            getChannel().writeAndFlush(new DatagramPacket(
+                    message,
+                    new InetSocketAddress(Constants.SERVER_IP, Constants.SERVER_PORT))).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void sendData(String data) {
         try {
 
@@ -103,6 +136,46 @@ public class MainUtil {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public long calculateChecksum(byte[] buf) {
+        int length = buf.length;
+        int i = 0;
+
+        long sum = 0;
+        long data;
+
+        // Handle all pairs
+        while (length > 1) {
+            // Corrected to include @Andy's edits and various comments on Stack Overflow
+            data = (((buf[i] << 8) & 0xFF00) | ((buf[i + 1]) & 0xFF));
+            sum += data;
+            // 1's complement carry bit correction in 16-bits (detecting sign extension)
+            if ((sum & 0xFFFF0000) > 0) {
+                sum = sum & 0xFFFF;
+                sum += 1;
+            }
+
+            i += 2;
+            length -= 2;
+        }
+
+        // Handle remaining byte in odd length buffers
+        if (length > 0) {
+            // Corrected to include @Andy's edits and various comments on Stack Overflow
+            sum += (buf[i] << 8 & 0xFF00);
+            // 1's complement carry bit correction in 16-bits (detecting sign extension)
+            if ((sum & 0xFFFF0000) > 0) {
+                sum = sum & 0xFFFF;
+                sum += 1;
+            }
+        }
+
+        // Final 1's complement value correction to 16-bits
+        sum = ~sum;
+        sum = sum & 0xFFFF;
+        return sum;
+
     }
 
     /**
