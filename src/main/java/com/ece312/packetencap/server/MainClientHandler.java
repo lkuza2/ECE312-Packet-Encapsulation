@@ -1,26 +1,19 @@
 package com.ece312.packetencap.server;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.ReferenceCountUtil;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.util.CharsetUtil;
 
 /**
  * Created by kuzalj on 1/28/2017.
  */
-public class MainClientHandler extends ChannelInboundHandlerAdapter {
+public class MainClientHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ByteBuf in = (ByteBuf) msg;
-        try {
-            while (in.isReadable()) { // (1)
-                System.out.print((char) in.readByte());
-                System.out.flush();
-            }
-        } finally {
-            ReferenceCountUtil.release(msg); // (2)
-        }
+    public void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
+        String response = msg.content().toString(CharsetUtil.UTF_8);
+        System.out.println(response);
     }
 
     @Override
@@ -28,5 +21,4 @@ public class MainClientHandler extends ChannelInboundHandlerAdapter {
         cause.printStackTrace();
         ctx.close();
     }
-
 }

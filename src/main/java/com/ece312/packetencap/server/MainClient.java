@@ -1,14 +1,12 @@
 package com.ece312.packetencap.server;
 
-import com.ece312.packetencap.util.Constants;
+import com.ece312.packetencap.util.MainUtil;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.socket.nio.NioDatagramChannel;
 
 /**
  * Created by kuzalj on 1/28/2017.
@@ -17,30 +15,33 @@ public class MainClient implements Runnable{
 
     @Override
     public void run() {
-        String host = Constants.SERVER_IP;
-        int port = Constants.SERVER_PORT;
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+        MainUtil.getInstance().setWorkerGroup(new NioEventLoopGroup());
+        EventLoopGroup group = MainUtil.getInstance().getWorkerGroup();
+        try {
+            Bootstrap b = new Bootstrap();
+            b.group(group)
+                    .channel(NioDatagramChannel.class)
+                    .option(ChannelOption.SO_BROADCAST, true)
+                    .handler(new MainClientHandler());
 
-            Bootstrap b = new Bootstrap(); // (1)
-            b.group(workerGroup); // (2)
-            b.channel(NioSocketChannel.class); // (3)
-            b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
-            b.handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new MainClientHandler());
-                }
-            });
+            MainUtil.getInstance().setChannel(b.bind(0).sync().channel());
+            Channel ch = MainUtil.getInstance().getChannel();
 
-            // Start the client.
-            try {
-                ChannelFuture f = b.connect(host, port).sync(); // (5)
 
-                // Wait until the connection is closed.
-                f.channel().closeFuture().sync();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            // Broadcast the QOTM request to port 8080.
+//            ch.writeAndFlush(new DatagramPacket(
+//                    Unpooled.copiedBuffer("QOTM?", CharsetUtil.UTF_8),
+//                    new InetSocketAddress("137.112.38.47", 1874))).sync();
+
+            // QuoteOfTheMomentClientHandler will close the DatagramChannel when a
+            // response is received.  If the channel is not closed within 5 seconds,
+            // print an error message and quit.
+//            if (!ch.closeFuture().await(5000)) {
+//                System.err.println("QOTM request timed out.");
+//            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }

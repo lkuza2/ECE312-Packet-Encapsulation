@@ -1,21 +1,18 @@
 package com.ece312.packetencap.util;
 
-/**
- * Created by kuzalj on 1/28/2017.
- */
-
-import com.ece312.packetencap.server.MainServer;
-import io.netty.buffer.ByteBuf;
+import com.ece312.packetencap.server.MainClient;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.socket.DatagramPacket;
+import io.netty.util.CharsetUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.Scanner;
 
 /**
@@ -24,11 +21,9 @@ import java.util.Scanner;
 public class MainUtil {
 
     private static MainUtil instance;
-    private String localUsername;
     private int port;
-    private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
-    private ChannelGroup broadcast;
+    private Channel channel;
 
     private MainUtil() {
 
@@ -62,7 +57,7 @@ public class MainUtil {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        new Thread(new MainServer(getPort())).start();
+        new Thread(new MainClient()).start();
 
         System.out.println("Ready to handle commands.");
         printCursor();
@@ -85,7 +80,7 @@ public class MainUtil {
                 case "":
                     break;
                 default:
-                    sendData(command, null);
+                    sendData(command);
                     printCursor();
                     break;
             }
@@ -93,38 +88,29 @@ public class MainUtil {
     }
 
     /**
-     * Prints the <username> cursor to the console
+     * Prints a simple cursor
      */
-    public void printCursor() {
+    private void printCursor() {
         System.out.print("<SHELL CITY>");
     }
 
-    public void sendData(String data, Channel exclude) {
-        for (Channel channel : getBroadcast()) {
-            if ((exclude != null && channel != exclude) || exclude == null) {
-                final ByteBuf message = channel.alloc().buffer(1024);// (2)
-                message.writeCharSequence(data, Charset.defaultCharset());
-                channel.writeAndFlush(message).awaitUninterruptibly().isSuccess();
-            }
+    public void sendData(String data) {
+        try {
+
+            getChannel().writeAndFlush(new DatagramPacket(
+                    Unpooled.copiedBuffer(data, CharsetUtil.UTF_8),
+                    new InetSocketAddress(Constants.SERVER_IP, Constants.SERVER_PORT))).sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     /**
      * Exits gracefully
      */
-    public void exit() {
-        sendData("exit", null);
-        getBossGroup().shutdownGracefully();
+    private void exit() {
         getWorkerGroup().shutdownGracefully();
         System.exit(0);
-    }
-
-    private String getLocalUsername() {
-        return localUsername;
-    }
-
-    private void setLocalUsername(String localUsername) {
-        this.localUsername = localUsername;
     }
 
     private int getPort() {
@@ -135,14 +121,6 @@ public class MainUtil {
         this.port = port;
     }
 
-    public EventLoopGroup getBossGroup() {
-        return bossGroup;
-    }
-
-    public void setBossGroup(EventLoopGroup bossGroup) {
-        this.bossGroup = bossGroup;
-    }
-
     public EventLoopGroup getWorkerGroup() {
         return workerGroup;
     }
@@ -151,11 +129,11 @@ public class MainUtil {
         this.workerGroup = workerGroup;
     }
 
-    public ChannelGroup getBroadcast() {
-        return broadcast;
+    public Channel getChannel() {
+        return channel;
     }
 
-    public void setBroadcast(ChannelGroup broadcast) {
-        this.broadcast = broadcast;
+    public void setChannel(Channel channel) {
+        this.channel = channel;
     }
 }
