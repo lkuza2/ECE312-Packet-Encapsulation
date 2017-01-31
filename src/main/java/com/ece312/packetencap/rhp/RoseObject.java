@@ -15,6 +15,10 @@ public class RoseObject {
         return dataObj.toString();
     }
 
+    public int getAsIDResponse() {
+        return (int) dataObj;
+    }
+
 
     public RoseHulmanMessageProtocol getAsRoseHulmanMessage() {
         return (RoseHulmanMessageProtocol) this.dataObj;

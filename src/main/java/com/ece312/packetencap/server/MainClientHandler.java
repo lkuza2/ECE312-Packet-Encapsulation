@@ -1,6 +1,7 @@
 package com.ece312.packetencap.server;
 
 import com.ece312.packetencap.rhp.RoseHulmanProtocol;
+import com.ece312.packetencap.util.MainUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -17,8 +18,7 @@ public class MainClientHandler extends SimpleChannelInboundHandler<DatagramPacke
 
         RoseHulmanProtocol protocol = new RoseHulmanProtocol(message);
         System.out.println(protocol);
-        System.out.println(protocol.getChecksum());
-        System.out.println(protocol.getCalculatedCheckSum());
+        MainUtil.getInstance().printCursor();
     }
 
     @Override

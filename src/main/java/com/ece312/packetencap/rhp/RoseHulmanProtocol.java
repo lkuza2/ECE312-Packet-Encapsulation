@@ -3,6 +3,7 @@ package com.ece312.packetencap.rhp;
 import com.ece312.packetencap.util.Constants;
 import com.ece312.packetencap.util.MainUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
 
 /**
@@ -13,15 +14,21 @@ public class RoseHulmanProtocol {
     private int dstPort;
     private int srcPort;
     private int checksum;
-    private int calculatedCheckSum;
+    private long calculatedCheckSum;
     private int type;
-    private boolean buffer;
+    private boolean isBuffer;
     private RoseObject payload;
 
 
+    public RoseHulmanProtocol(int type, int srcPort, RoseObject payload) {
+        this.type = type;
+        this.srcPort = srcPort;
+        this.payload = payload;
+    }
+
     public RoseHulmanProtocol(ByteBuf message) {
-        this.type = message.readUnsignedByte();
         ByteBuf cleanMessage = message.copy();
+        this.type = message.readUnsignedByte();
 
         this.dstPort = message.readUnsignedShortLE();
         this.srcPort = message.readUnsignedShortLE();
@@ -42,8 +49,8 @@ public class RoseHulmanProtocol {
 
         byte bb[] = new byte[byteBufSize];
         cleanMessage.readBytes(bb, 0, byteBufSize);
-        this.calculatedCheckSum = (int) MainUtil.getInstance().calculateChecksum(bb);
-        this.buffer = buffer != -1;
+        this.calculatedCheckSum = MainUtil.getInstance().calculateChecksum(bb);
+        this.isBuffer = buffer != -1;
 
         //cleanMessage.release();
         //message.release();
@@ -68,10 +75,64 @@ public class RoseHulmanProtocol {
         return size;
     }
 
+    public ByteBuf createMessage() {
+        ByteBuf message = Unpooled.buffer();
+
+        setDstPort(getType() == Constants.CONTROL_MESSAGE_TYPE ?
+                getPayload().getAsControlMessage().length() : Constants.DST_PORT);
+
+        message.writeByte(getType()).writeShortLE(getDstPort()).writeShortLE(getSrcPort());
+        int length = 0;
+        switch (getType()) {
+            case Constants.CONTROL_MESSAGE_TYPE:
+                int writtenBytes = message.writeCharSequence(getPayload().getAsControlMessage(), CharsetUtil.US_ASCII);
+                length = writtenBytes + 5;
+                break;
+            case Constants.RHMP_MESSAGE_TYPE:
+                length = 8 + getPayload().getAsRoseHulmanMessage().getLength();
+                message.writeBytes(getPayload().getAsRoseHulmanMessage().createMessage());
+                break;
+            default:
+                break;
+        }
+
+        if (length % 2 == 1) {
+            message.writeByte(0);
+            setBuffer(true);
+        }
+
+        ByteBuf cleanMessage = message.copy();
+
+        byte bb[] = new byte[length];
+        cleanMessage.readBytes(bb, 0, length);
+
+        long checksum = MainUtil.getInstance().calculateChecksum(bb);
+        setChecksum((short) checksum);
+
+        message.writeShort((short) checksum);
+
+        return message;
+    }
+
     @Override
     public String toString() {
-        return "Type: " + getType() + " Dst Port: " + getDstPort() + " Src Port: " + getSrcPort()
-                + " Message: " + getPayload().getAsControlMessage() + " Buffer: " + isBuffer() + " Checksum: " + isChecksumValid();
+        String messageTxt = "";
+
+        if (getType() == Constants.CONTROL_MESSAGE_TYPE)
+            messageTxt += getPayload().getAsControlMessage();
+        else {
+            switch (getPayload().getAsRoseHulmanMessage().getType()) {
+                case Constants.RHMP_ID_RESPONSE_TYPE:
+                    messageTxt += Integer.toString(getPayload().getAsRoseHulmanMessage().getPayload().getAsIDResponse());
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return "Type: " + getType() + "\nDst Port: " + getDstPort() + "\nSrc Port: " + getSrcPort()
+                + "\nMessage: " + messageTxt +
+                "\nBuffer: " + isBuffer() + "\nChecksum: " + isChecksumValid();
     }
 
     public boolean isChecksumValid() {
@@ -102,7 +163,7 @@ public class RoseHulmanProtocol {
         this.checksum = checksum;
     }
 
-    public int getCalculatedCheckSum() {
+    public long getCalculatedCheckSum() {
         return calculatedCheckSum;
     }
 
@@ -127,10 +188,10 @@ public class RoseHulmanProtocol {
     }
 
     public boolean isBuffer() {
-        return buffer;
+        return isBuffer;
     }
 
     public void setBuffer(boolean buffer) {
-        this.buffer = buffer;
+        this.isBuffer = buffer;
     }
 }

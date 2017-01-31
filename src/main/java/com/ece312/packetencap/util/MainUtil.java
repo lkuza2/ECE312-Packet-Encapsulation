@@ -1,12 +1,13 @@
 package com.ece312.packetencap.util;
 
+import com.ece312.packetencap.rhp.RoseHulmanMessageProtocol;
+import com.ece312.packetencap.rhp.RoseHulmanProtocol;
+import com.ece312.packetencap.rhp.RoseObject;
 import com.ece312.packetencap.server.MainClient;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.DatagramPacket;
-import io.netty.util.CharsetUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -81,7 +82,15 @@ public class MainUtil {
                     exit();
                     break;
                 case "1":
-                    sendRHPControlMessage("hello");
+                    sendRHPControlMessage(new RoseObject("hello"), Constants.CONTROL_MESSAGE_TYPE);
+                    break;
+                case "2":
+                    sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_ID_REQUEST_TYPE)),
+                            Constants.RHMP_MESSAGE_TYPE);
+                    break;
+                case "3":
+                    sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(9)),
+                            Constants.RHMP_MESSAGE_TYPE);
                     break;
                 default:
                     break;
@@ -92,46 +101,17 @@ public class MainUtil {
     /**
      * Prints a simple cursor
      */
-    private void printCursor() {
+    public void printCursor() {
         System.out.print("<SHELL CITY>");
     }
 
-    private void sendRHPControlMessage(String payload) {
-        ByteBuf message = Unpooled.buffer();
-        int writtenBytes = message.writeByte(1).writeShortLE(payload.length()).writeShortLE(getPort())
-                .writeCharSequence(payload, CharsetUtil.US_ASCII);
-        int length = writtenBytes + 5;
-        System.out.println(length);
-
-        if (length % 2 == 1) {
-            message.writeByte(0);
-        }
-
-        ByteBuf cleanMessage = message.copy();
-
-        System.out.println(length);
-        byte bb[] = new byte[length];
-        cleanMessage.readBytes(bb, 0, length);
-
-        long checksum = calculateChecksum(bb);
-
-        message.writeShort((short) checksum);
-
+    private void sendRHPControlMessage(RoseObject payload, int type) {
+        RoseHulmanProtocol protocol = new RoseHulmanProtocol(type, getPort(), payload);
+        ByteBuf message = protocol.createMessage();
 
         try {
             getChannel().writeAndFlush(new DatagramPacket(
                     message,
-                    new InetSocketAddress(Constants.SERVER_IP, Constants.SERVER_PORT))).sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void sendData(String data) {
-        try {
-
-            getChannel().writeAndFlush(new DatagramPacket(
-                    Unpooled.copiedBuffer(data, CharsetUtil.UTF_8),
                     new InetSocketAddress(Constants.SERVER_IP, Constants.SERVER_PORT))).sync();
         } catch (InterruptedException e) {
             e.printStackTrace();
