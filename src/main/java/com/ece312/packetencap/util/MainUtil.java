@@ -1,9 +1,9 @@
 package com.ece312.packetencap.util;
 
+import com.ece312.packetencap.client.MainClient;
 import com.ece312.packetencap.rhp.RoseHulmanMessageProtocol;
 import com.ece312.packetencap.rhp.RoseHulmanProtocol;
 import com.ece312.packetencap.rhp.RoseObject;
-import com.ece312.packetencap.server.MainClient;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -69,7 +69,7 @@ public class MainUtil {
     }
 
     /**
-     * This handles data that is typed in by the user on the server side, and sends that data to clients
+     * This handles data that is typed in by the user on the client side, and sends that data to clients
      *
      * @param scanner System.in scanner
      */
@@ -89,7 +89,7 @@ public class MainUtil {
                             Constants.RHMP_MESSAGE_TYPE);
                     break;
                 case "3":
-                    sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(9)),
+                    sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_MESSAGE_REQUEST_TYPE)),
                             Constants.RHMP_MESSAGE_TYPE);
                     break;
                 default:

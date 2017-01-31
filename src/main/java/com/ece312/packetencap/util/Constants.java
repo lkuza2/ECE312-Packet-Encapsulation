@@ -10,6 +10,7 @@ public interface Constants {
     public static final int RHMP_MESSAGE_TYPE = 0;
     public static final int CONTROL_MESSAGE_TYPE = 1;
     public static final int DST_PORT = 105;
+    public static final int COMM_ID = 312;
 
     public static final int RHMP_RESERVED_TYPE = 1;
     public static final int RHMP_ID_REQUEST_TYPE = 2;

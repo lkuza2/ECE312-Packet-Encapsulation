@@ -3,6 +3,7 @@ package com.ece312.packetencap.rhp;
 import com.ece312.packetencap.util.Constants;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.util.CharsetUtil;
 
 /**
  * Created by kuzalj on 1/30/2017.
@@ -20,33 +21,31 @@ public class RoseHulmanMessageProtocol {
     }
 
     public RoseHulmanMessageProtocol(ByteBuf message) {
-        byte fragment1 = message.readByte();
-        byte fragment2 = message.readByte();
-        ByteBuf buf = Unpooled.buffer();
+        int fragment = message.readUnsignedShortLE();
 
-        this.type = fragment1 >>> 2;
-        this.commID = (fragment2 + (fragment1 << 2));
-        this.length = message.readUnsignedShortLE();
-
+        this.commID = fragment >>> 6;
+        this.type = (0b0000000000111111 & fragment);
+        this.length = message.readUnsignedByte();
+        System.out.println(getLength());
         switch (getType()) {
             case Constants.RHMP_ID_RESPONSE_TYPE:
-                this.payload = new RoseObject(message.readUnsignedIntLE());
+                this.payload = new RoseObject((int) message.readUnsignedIntLE());
+                break;
+            case Constants.RHMP_MESSAGE_RESPONSE_TYPE:
+                this.payload = new RoseObject(message.readCharSequence(getLength(), CharsetUtil.US_ASCII).toString());
+                System.out.println("payload");
                 break;
             default:
                 break;
         }
-        //message.readBytes(buf, getLength());
-        //payload = new RoseObject(buf);
     }
 
     public ByteBuf createMessage() {
         ByteBuf message = Unpooled.buffer();
 
-        byte fragment1 = (((byte) ((((byte) getType()) << 2) + 1)));
-        System.out.println(fragment1);
-        byte fragment2 = 0b00111000;
+        short fragment = (short) (getType() | (Constants.COMM_ID << 6));
 
-        message.writeByte(fragment2).writeByte(fragment1);
+        message.writeShortLE(fragment);
 
         switch (getType()) {
             case Constants.RHMP_RESERVED_TYPE:

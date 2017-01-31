@@ -62,6 +62,7 @@ public class RoseHulmanProtocol {
         switch (type) {
             case Constants.RHMP_MESSAGE_TYPE:
                 dataObj = new RoseHulmanMessageProtocol(message);
+                size = new RoseObject(dataObj).getAsRoseHulmanMessage().getLength() + 3;
                 break;
             case Constants.CONTROL_MESSAGE_TYPE:
                 dataObj = message.readCharSequence(getDstPort(), CharsetUtil.US_ASCII).toString();
@@ -125,6 +126,9 @@ public class RoseHulmanProtocol {
                 case Constants.RHMP_ID_RESPONSE_TYPE:
                     messageTxt += Integer.toString(getPayload().getAsRoseHulmanMessage().getPayload().getAsIDResponse());
                     break;
+                case Constants.RHMP_MESSAGE_RESPONSE_TYPE:
+                    messageTxt += getPayload().getAsRoseHulmanMessage().getPayload().getAsControlMessage();
+                    break;
                 default:
                     break;
             }
@@ -132,7 +136,8 @@ public class RoseHulmanProtocol {
 
         return "Type: " + getType() + "\nDst Port: " + getDstPort() + "\nSrc Port: " + getSrcPort()
                 + "\nMessage: " + messageTxt +
-                "\nBuffer: " + isBuffer() + "\nChecksum: " + isChecksumValid();
+                "\nBuffer: " + isBuffer() + "\nChecksum: " + isChecksumValid() +
+                "\nChecksum RAW: " + getChecksum() + "\nCalculated Checksum: " + getCalculatedCheckSum();
     }
 
     public boolean isChecksumValid() {

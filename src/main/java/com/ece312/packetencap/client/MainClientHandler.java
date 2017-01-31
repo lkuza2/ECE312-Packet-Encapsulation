@@ -1,4 +1,4 @@
-package com.ece312.packetencap.server;
+package com.ece312.packetencap.client;
 
 import com.ece312.packetencap.rhp.RoseHulmanProtocol;
 import com.ece312.packetencap.util.MainUtil;
