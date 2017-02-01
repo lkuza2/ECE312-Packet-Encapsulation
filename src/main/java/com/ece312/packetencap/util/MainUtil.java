@@ -26,6 +26,7 @@ public class MainUtil {
     private int port;
     private EventLoopGroup workerGroup;
     private Channel channel;
+    private RoseHulmanProtocol response = null;
 
     private MainUtil() {
 
@@ -42,8 +43,8 @@ public class MainUtil {
      */
     public void run() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Welcome to Java Socket Chat Server v1.00");
-        System.out.println("Please Enter a Port Number: ");
+        System.out.println("Welcome to Java Packet Encapsulation v1.00");
+        System.out.print("Please Enter a srcPort Number: ");
         setPort(scanner.nextInt());
 
         // This gets the current IP of the host
@@ -54,16 +55,17 @@ public class MainUtil {
 
             String ip = in.readLine(); //you get the IP as a String
 
-            System.out.println("Starting Server on local address: " + InetAddress.getLocalHost().getHostAddress() +
-                    " Global Address: " + ip + " and port: " + getPort());
+            System.out.println("Starting up on local address: " + InetAddress.getLocalHost().getHostAddress() +
+                    " Global Address: " + ip + " and srcPort: " + getPort());
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         new Thread(new MainClient()).start();
 
         while (getChannel() == null) ;
 
-        System.out.println("Ready to handle commands.");
+        System.out.println("Ready to handle commands. Type \"start\" to begin");
         printCursor();
         handleCommands(scanner);
     }
@@ -81,21 +83,90 @@ public class MainUtil {
                     scanner.close();
                     exit();
                     break;
+                case "start":
+                    startMultipleTransmission();
+                    break;
+                case "change srcport":
+                    changeSrcPort(scanner);
+                    break;
                 case "1":
                     sendRHPControlMessage(new RoseObject("hello"), Constants.CONTROL_MESSAGE_TYPE);
+                    while (getResponse() == null) ;
+                    System.out.println(getResponse());
                     break;
                 case "2":
                     sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_ID_REQUEST_TYPE)),
                             Constants.RHMP_MESSAGE_TYPE);
+                    while (getResponse() == null) ;
+                    System.out.println(getResponse());
                     break;
                 case "3":
                     sendRHPControlMessage(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_MESSAGE_REQUEST_TYPE)),
                             Constants.RHMP_MESSAGE_TYPE);
+                    while (getResponse() == null) ;
+                    System.out.println(getResponse());
                     break;
                 default:
+                    if (!command.trim().isEmpty())
+                        System.out.println("Invalid command!");
                     break;
             }
+            if (!command.trim().isEmpty())
+                printCursor();
+            setResponse(null);
         }
+    }
+
+    private void changeSrcPort(Scanner scanner) {
+        System.out.print("Please Enter a srcPort Number: ");
+        setPort(scanner.nextInt());
+    }
+
+    private void startMultipleTransmission() {
+        System.out.println("Starting multiple transmissions...");
+        System.out.println("This will transmit the UDP messages...");
+        System.out.println("1. A RHP Control Message with the type CONTROL (1) and a payload of 'hello'");
+        System.out.println("2. A RHMP message with ID_REQUEST type");
+        System.out.println("3. A RHMP message with MESSAGE_REQUEST type");
+        System.out.println("All parameters will be printed out before and after transmission. \n" +
+                "If a checksum fails, transmission will be repeated.");
+
+        System.out.println("Beginning transmission in 5 seconds...");
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        sendRHPMessageWithDataChecking(new RoseObject("hello"), Constants.CONTROL_MESSAGE_TYPE);
+        sendRHPMessageWithDataChecking(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_ID_REQUEST_TYPE)),
+                Constants.RHMP_MESSAGE_TYPE);
+        sendRHPMessageWithDataChecking(new RoseObject(new RoseHulmanMessageProtocol(Constants.RHMP_MESSAGE_REQUEST_TYPE)),
+                Constants.RHMP_MESSAGE_TYPE);
+
+    }
+
+    private void sendRHPMessageWithDataChecking(RoseObject roseObject, int type) {
+        RoseHulmanProtocol protocol;
+        boolean checksumValid = false;
+
+        while (!checksumValid) {
+            protocol = sendRHPControlMessage(roseObject, type);
+            System.out.println("Sent message to " + Constants.SERVER_IP + " at port " + Constants.SERVER_PORT + " with parameters,");
+            System.out.println(protocol);
+            while (getResponse() == null) ;
+            System.out.println();
+            System.out.println("Response received,");
+            System.out.println(getResponse());
+            System.out.println();
+
+            checksumValid = getResponse().isChecksumValid();
+            if (!getResponse().isChecksumValid()) {
+                System.out.println("Checksum NOT valid! Repeating transmission!");
+                System.out.println();
+            }
+        }
+        setResponse(null);
     }
 
     /**
@@ -105,7 +176,7 @@ public class MainUtil {
         System.out.print("<SHELL CITY>");
     }
 
-    private void sendRHPControlMessage(RoseObject payload, int type) {
+    private RoseHulmanProtocol sendRHPControlMessage(RoseObject payload, int type) {
         RoseHulmanProtocol protocol = new RoseHulmanProtocol(type, getPort(), payload);
         ByteBuf message = protocol.createMessage();
 
@@ -116,6 +187,7 @@ public class MainUtil {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        return protocol;
     }
 
     public long calculateChecksum(byte[] buf) {
@@ -188,5 +260,13 @@ public class MainUtil {
 
     public void setChannel(Channel channel) {
         this.channel = channel;
+    }
+
+    public synchronized RoseHulmanProtocol getResponse() {
+        return response;
+    }
+
+    public synchronized void setResponse(RoseHulmanProtocol response) {
+        this.response = response;
     }
 }

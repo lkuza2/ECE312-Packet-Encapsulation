@@ -26,14 +26,12 @@ public class RoseHulmanMessageProtocol {
         this.commID = fragment >>> 6;
         this.type = (0b0000000000111111 & fragment);
         this.length = message.readUnsignedByte();
-        System.out.println(getLength());
         switch (getType()) {
             case Constants.RHMP_ID_RESPONSE_TYPE:
                 this.payload = new RoseObject((int) message.readUnsignedIntLE());
                 break;
             case Constants.RHMP_MESSAGE_RESPONSE_TYPE:
                 this.payload = new RoseObject(message.readCharSequence(getLength(), CharsetUtil.US_ASCII).toString());
-                System.out.println("payload");
                 break;
             default:
                 break;

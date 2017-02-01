@@ -7,9 +7,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 
-/**
- * Created by kuzalj on 1/28/2017.
- */
+
 public class MainClient implements Runnable{
 
     @Override
@@ -30,16 +28,3 @@ public class MainClient implements Runnable{
     }
 
 }
-
-
-// Broadcast the QOTM request to port 8080.
-//            ch.writeAndFlush(new DatagramPacket(
-//                    Unpooled.copiedBuffer("QOTM?", CharsetUtil.UTF_8),
-//                    new InetSocketAddress("137.112.38.47", 1874))).sync();
-
-// QuoteOfTheMomentClientHandler will close the DatagramChannel when a
-// response is received.  If the channel is not closed within 5 seconds,
-// print an error message and quit.
-//            if (!ch.closeFuture().await(5000)) {
-//                System.err.println("QOTM request timed out.");
-//            }

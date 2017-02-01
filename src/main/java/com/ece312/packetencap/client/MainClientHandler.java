@@ -17,8 +17,7 @@ public class MainClientHandler extends SimpleChannelInboundHandler<DatagramPacke
         ByteBuf message = msg.content();
 
         RoseHulmanProtocol protocol = new RoseHulmanProtocol(message);
-        System.out.println(protocol);
-        MainUtil.getInstance().printCursor();
+        MainUtil.getInstance().setResponse(protocol);
     }
 
     @Override
