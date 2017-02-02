@@ -7,9 +7,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.DatagramPacket;
 
-/**
- * Created by kuzalj on 1/28/2017.
- */
 public class MainClientHandler extends SimpleChannelInboundHandler<DatagramPacket> {
 
     @Override

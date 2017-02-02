@@ -157,12 +157,13 @@ public class MainUtil {
             while (getResponse() == null) ;
             System.out.println();
             System.out.println("Response received,");
-            System.out.println(getResponse());
-            System.out.println();
 
             checksumValid = getResponse().isChecksumValid();
             if (!getResponse().isChecksumValid()) {
                 System.out.println("Checksum NOT valid! Repeating transmission!");
+                System.out.println();
+            } else {
+                System.out.println(getResponse());
                 System.out.println();
             }
         }

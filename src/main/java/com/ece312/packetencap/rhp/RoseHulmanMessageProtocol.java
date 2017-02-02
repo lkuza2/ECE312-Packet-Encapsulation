@@ -5,9 +5,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
 
-/**
- * Created by kuzalj on 1/30/2017.
- */
 public class RoseHulmanMessageProtocol {
 
     private int type;

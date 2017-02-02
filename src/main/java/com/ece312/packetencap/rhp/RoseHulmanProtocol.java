@@ -6,9 +6,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
 
-/**
- * Created by kuzalj on 1/30/2017.
- */
 public class RoseHulmanProtocol {
 
     private int dstPort;
@@ -118,24 +115,30 @@ public class RoseHulmanProtocol {
     @Override
     public String toString() {
         String messageTxt = "";
+        String RHMPTxt = "";
+        String RHMPayload = "RHMP Payload";
 
         if (getType() == Constants.CONTROL_MESSAGE_TYPE)
-            messageTxt += getPayload().getAsControlMessage();
+            RHMPayload = getPayload().getAsControlMessage();
         else {
+            RoseHulmanMessageProtocol message = getPayload().getAsRoseHulmanMessage();
             switch (getPayload().getAsRoseHulmanMessage().getType()) {
                 case Constants.RHMP_ID_RESPONSE_TYPE:
-                    messageTxt += Integer.toString(getPayload().getAsRoseHulmanMessage().getPayload().getAsIDResponse());
+                    messageTxt += Integer.toString(message.getPayload().getAsIDResponse());
                     break;
                 case Constants.RHMP_MESSAGE_RESPONSE_TYPE:
-                    messageTxt += getPayload().getAsRoseHulmanMessage().getPayload().getAsControlMessage();
+                    messageTxt += message.getPayload().getAsControlMessage();
                     break;
                 default:
                     break;
             }
+            RHMPTxt += "\n--Start RHMP Parameters--\nRHMP Type: " + message.getType() + "\nCommID: "
+                    + message.getCommID() + "\nLength: " + message.getLength() + "\nPayload: " + messageTxt
+                    + "\n--End RHMP Parameters--";
         }
 
         return "Type: " + getType() + "\nDst Port: " + getDstPort() + "\nSrc Port: " + getSrcPort()
-                + "\nMessage: " + messageTxt +
+                + "\nPayload: " + RHMPayload + RHMPTxt +
                 "\nBuffer: " + isBuffer() + "\nChecksum: " + isChecksumValid() +
                 "\nChecksum RAW: " + getChecksum() + "\nCalculated Checksum: " + getCalculatedCheckSum();
     }
