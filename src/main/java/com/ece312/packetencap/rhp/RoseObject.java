@@ -12,7 +12,7 @@ public class RoseObject {
     }
 
     public String getAsControlMessage() {
-        return dataObj.toString();
+        return dataObj.toString().replace('\0', ' ');
     }
 
     public int getAsIDResponse() {
