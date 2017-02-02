@@ -162,6 +162,7 @@ public class MainUtil {
             if (!getResponse().isChecksumValid()) {
                 System.out.println("Checksum NOT valid! Repeating transmission!");
                 System.out.println();
+                setResponse(null);
             } else {
                 System.out.println(getResponse());
                 System.out.println();
